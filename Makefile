@@ -1,7 +1,7 @@
 all: build
 
 build:
-	gcc socket.c receiver.c sender.c main.c -lpthread -o main
+	gcc socket/socket.c receiver/receiver.c sender/sender.c list/list.c main.c -lpthread -o main
 
 run: build
 	./main

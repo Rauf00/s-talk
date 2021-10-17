@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
-#include "receiver.h"
 
 #define DYNAMIC_LEN 128
 #define MSG_MAX_LEN 1024
@@ -42,7 +41,6 @@ void* sendThread(void* msgArg) {
         (struct sockaddr *) &sinRemote, sin_len);
     return NULL;
 }
-
 
 void Sender_init(char* rxMessage, int port, int socket) {
     remotePort = port;

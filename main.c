@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "receiver.h"
-#include "sender.h"
-#include "socket.h"
+#include "receiver/receiver.h"
+#include "sender/sender.h"
+#include "socket/socket.h"
 
 int main(int argc, char** args) {
     // Read arguments
