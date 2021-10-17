@@ -7,7 +7,6 @@
 #include <signal.h>
 #include "receiver.h"
 
-#define DYNAMIC_LEN 128
 #define MSG_MAX_LEN 1024
 
 static pthread_mutex_t dynamicMessageMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -18,9 +17,7 @@ static pthread_t threadPID;
 static char* s_rxMessage;
 static char* dynamicMessage;
 
-
 void* receiveThread(void* msgArg) { // this arg has to be always passed even if unused
-    // printf("Receiver is listening...\n");
     while (1) {
         // get the data (blocking)
         // Will change sin (the address) to be the address of the client 
@@ -32,7 +29,9 @@ void* receiveThread(void* msgArg) { // this arg has to be always passed even if 
             messageRx, MSG_MAX_LEN, 0, 
             (struct sockaddr *) &sinRemote, &sin_len);
         messageRx[recieveMessegeSize] = '\0';
-        printf("Message: %s\n", messageRx);
+
+        // TO DO: put the message into the ReceiverList from which Output module will pull the message and display
+        printf("\nIncoming message: %s\n", messageRx); // to be removed
     }
     
     return NULL;
@@ -41,7 +40,6 @@ void* receiveThread(void* msgArg) { // this arg has to be always passed even if 
 void Receiver_init(char* rxMessage, int port, int socket) {
     localPort = port;
     socketDescriptor = socket;
-    // s_rxMessage = localPort;
     pthread_create(
         &threadPID,                     // PID (passed by pointer)
         NULL,                           // Attributed (not used usually)
@@ -51,6 +49,7 @@ void Receiver_init(char* rxMessage, int port, int socket) {
 }
 
 void Receiver_shutdown(void) {
+    // TO DO: cancel thread when user inputs ! char
     // Cancel the thread to finish
     // pthread_cancel(threadPID);
 

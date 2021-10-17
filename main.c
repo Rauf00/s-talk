@@ -5,6 +5,7 @@
 #include "socket.h"
 
 int main(int argc, char** args) {
+    // Read arguments
     if (argc != 4) {
         printf("Invalid num of args\n");
         return 0;
@@ -16,21 +17,17 @@ int main(int argc, char** args) {
 
     // Create socket
     int socketDescriptor = Socket_init(localPort);
-    // Startup my modules
-    Receiver_init(NULL, localPort, socketDescriptor);
 
-    // printf("Enter a message: \n");
-    // char x;
-    // scanf("%c", &x);
-    Sender_init(NULL, remotePort, socketDescriptor);
+    // Startup modules (we'll have 4 threads)
+    Receiver_init(NULL, localPort, socketDescriptor); // Gets messsage from other process and puts it to the list 
+    Sender_init(NULL, remotePort, socketDescriptor);  // Gets message from the list and sends it to the other process
+    // Input_init(); // Gets input from user and puts it to the list
+    // Ouput_init(); // Gets output from the list and displays it
 
-    // // Wait for the user input
-    
-
-    // Shutdown my modules
+    // Shutdown modules
     Receiver_shutdown();
     Sender_shutdown();
-    printf("done\n");
 
+    printf("**** Program end ****\n");
     return 0;
 }
