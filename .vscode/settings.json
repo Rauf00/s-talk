@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "sender.h": "c",
+        "list.h": "c",
+        "listmanager.h": "c",
+        "unistd.h": "c",
+        "socket.h": "c",
+        "keyboard.h": "c"
+    }
+}

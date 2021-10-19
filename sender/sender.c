@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
+#include "../list/list.h"
+#include "../list/listmanager.h"
 
 #define DYNAMIC_LEN 128
 #define MSG_MAX_LEN 1024
@@ -17,6 +19,10 @@ static pthread_t threadPID;
 static char* s_rxMessage;
 static char* dynamicMessage;
 
+static List* senderList;
+static char* message = NULL;
+
+
 
 void* sendThread(void* msgArg) {
     // Construct remote socket address
@@ -26,23 +32,28 @@ void* sendThread(void* msgArg) {
     sinRemote.sin_addr.s_addr = htonl(INADDR_ANY);    // Host to Network long // local IP address
     sinRemote.sin_port = htons(remotePort);           // Host to Network short
 
-    // TO DO: Read the message in the Input Module and add it to the list SenderList
+    // TODO: Read the message in the Input Module and add it to the list SenderList
     // Sender module will then pull the message from the list and send it
+    while(1) {
+        while(List_count(senderList) > 0) {
+            message = List_trim(senderList);
+            // Send the message to remote socket
+            unsigned int sin_len = sizeof(sinRemote);
+            sendto(socketDescriptor, 
+            message, strlen(message), 0, 
+            (struct sockaddr *) &sinRemote, sin_len);
 
-    printf("Enter a message: "); // to be removed
-    char x;
-    scanf("%c", &x);
-
-    // Send the message to remote socket
-    unsigned int sin_len = sizeof(sinRemote);
-    char* messageTx = &x;
-    sendto(socketDescriptor, 
-        messageTx, MSG_MAX_LEN, 0, 
-        (struct sockaddr *) &sinRemote, sin_len);
+            if(strcmp(message,"!\n") == 0) {
+                puts("PROGRAM SHUTDOWN");
+                exit(1);
+            }
+        }
+    }
     return NULL;
 }
 
 void Sender_init(char* rxMessage, int port, int socket) {
+    senderList = ListManager_getsenderList();
     remotePort = port;
     socketDescriptor = socket;
     pthread_create(
@@ -57,7 +68,7 @@ void Sender_shutdown(void) {
     // TO DO: cancel thread when user inputs ! char
 
     // Cancel the thread to finish
-    // pthread_cancel(threadPID);
+    pthread_cancel(threadPID);
 
     // waits for thread to finish
     pthread_join(threadPID, NULL);
