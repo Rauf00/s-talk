@@ -20,7 +20,6 @@ static char* s_rxMessage;
 static char* dynamicMessage;
 
 static List* receiverList = NULL;
-static char* message = NULL;
 
 void* receiveThread(void* msgArg) { // this arg has to be always passed even if unused
     while (1) {
@@ -29,14 +28,12 @@ void* receiveThread(void* msgArg) { // this arg has to be always passed even if 
         // Note: sin passes information in and otu of call!
         struct sockaddr_in sinRemote;
         unsigned int sin_len = sizeof(sinRemote);
-        message = malloc(MSG_MAX_LEN);
-        fflush(stdout);
-        while(1) {
-            int receiveMessageSize = recvfrom(socketDescriptor, 
-            message, MSG_MAX_LEN, 0, 
-            (struct sockaddr *) &sinRemote, &sin_len);
-            List_prepend(receiverList,message);
-        }
+        char message[MSG_MAX_LEN] = {};
+        // fflush(stdout);
+        recvfrom(socketDescriptor, 
+        message, MSG_MAX_LEN, 0, 
+        (struct sockaddr *) &sinRemote, &sin_len);
+        List_prepend(receiverList,message);
         // TO DO: put the message into the ReceiverList from which Output module will pull the message and display
         //printf("\nIncoming message: %p\n", List_curr(receiverList)); // to be removed
     }
