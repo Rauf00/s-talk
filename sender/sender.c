@@ -48,6 +48,8 @@ void* sendThread(void* msgArg) {
                 exit(1);
             }
         }
+        free(message);
+        message = NULL;
     }
     return NULL;
 }
@@ -69,6 +71,7 @@ void Sender_shutdown(void) {
 
     // Cancel the thread to finish
     pthread_cancel(threadPID);
+
 
     // waits for thread to finish
     pthread_join(threadPID, NULL);

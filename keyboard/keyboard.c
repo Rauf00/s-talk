@@ -22,6 +22,7 @@ void* keyboardThread(void* empty) {
         message = malloc(MSG_MAX_LEN);
 
         fgets(message, MSG_MAX_LEN, stdin);
+        
         List_prepend(senderList,message);
 
         if(strcmp(message,"!\n") == 0) {

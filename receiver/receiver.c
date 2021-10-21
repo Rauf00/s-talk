@@ -8,6 +8,7 @@
 #include "receiver.h"
 #include "../list/list.h"
 #include "../list/listmanager.h"
+#include "../screen/screen.h"
 
 #define MSG_MAX_LEN 1024
 
@@ -19,6 +20,11 @@ static pthread_t threadPID;
 static char* s_rxMessage;
 static char* dynamicMessage;
 
+static pthread_mutex_t display_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static pthread_cond_t bufferAvail = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t itemAvail = PTHREAD_COND_INITIALIZER;
+
 static List* receiverList = NULL;
 
 void* receiveThread(void* msgArg) { // this arg has to be always passed even if unused
@@ -29,19 +35,54 @@ void* receiveThread(void* msgArg) { // this arg has to be always passed even if 
         struct sockaddr_in sinRemote;
         unsigned int sin_len = sizeof(sinRemote);
         char message[MSG_MAX_LEN] = {};
-        // fflush(stdout);
+
+        if(List_count(receiverList) == 100) {
+            pthread_mutex_lock(&display_mutex);
+            {
+                // wait will gave up the mutex while process is waiting
+                pthread_cond_wait(&bufferAvail, &display_mutex);
+            }
+            pthread_mutex_unlock(&display_mutex);
+        }
         recvfrom(socketDescriptor, 
         message, MSG_MAX_LEN, 0, 
         (struct sockaddr *) &sinRemote, &sin_len);
-        List_prepend(receiverList,message);
-        // TO DO: put the message into the ReceiverList from which Output module will pull the message and display
-        //printf("\nIncoming message: %p\n", List_curr(receiverList)); // to be removed
+
+        pthread_mutex_lock(&display_mutex);
+        {
+            List_prepend(receiverList,message);
+            printf("%s", message);
+            pthread_cond_signal(&itemAvail);
+        }
+        pthread_mutex_unlock(&display_mutex);
+        printf("mutex unlocked receiver");
+           
     }
     
     return NULL;
 }
 
+void Receiver_itemAvailWait() {
+
+    pthread_mutex_lock(&display_mutex);
+    { 
+        pthread_cond_wait(&itemAvail,&display_mutex);
+    }
+    pthread_mutex_unlock(&display_mutex);
+}
+
+void Receiver_bufferAvailSignal() {
+
+    pthread_mutex_lock(&display_mutex);
+    { 
+        pthread_cond_signal(&bufferAvail);
+    }
+    pthread_mutex_unlock(&display_mutex);
+}
+
+
 void Receiver_init(char* rxMessage, int port, int socket) {
+    printf("receiver starting\n");
     receiverList = ListManager_getreceiverList();
     localPort = port;
     socketDescriptor = socket;
