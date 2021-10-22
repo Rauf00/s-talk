@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include "receiver/receiver.h"
 #include "sender/sender.h"
 #include "socket/socket.h"
@@ -23,19 +24,20 @@ int main(int argc, char** args) {
 
     // Create socket
     int socketDescriptor = Socket_init(localPort);
+    // Display_mutex is shared between Receiver and Screen
+    static pthread_mutex_t display_mutex = PTHREAD_MUTEX_INITIALIZER;
 
     // Startup modules (we'll have 4 threads)
     Keyboard_init(); // Gets input from user and puts it to the list
     Sender_init(NULL, remotePort, socketDescriptor);  // Gets message from the list and sends it to the other process
-    Receiver_init(NULL, localPort, socketDescriptor); // Gets messsage from other process and puts it to the list 
-    Screen_init();
+    Receiver_init(NULL, localPort, socketDescriptor, display_mutex); // Gets messsage from other process and puts it to the list 
+    Screen_init(display_mutex);
 
     // Shutdown modules
     Keyboard_shutdown();
     Sender_shutdown();
     Receiver_shutdown();
     Screen_shutdown();
-
 
     printf("**** Program end ****\n");
     return 0;

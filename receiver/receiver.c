@@ -5,102 +5,81 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
+
 #include "receiver.h"
-#include "../list/list.h"
-#include "../list/listmanager.h"
 #include "../screen/screen.h"
+#include "../list/listmanager.h"
 
 #define MSG_MAX_LEN 1024
 
-static pthread_mutex_t dynamicMessageMutex = PTHREAD_MUTEX_INITIALIZER;
-
 static int localPort;
 static int socketDescriptor;
-static pthread_t threadPID;
-static char* s_rxMessage;
-static char* dynamicMessage;
-
-static pthread_mutex_t display_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-static pthread_cond_t bufferAvail = PTHREAD_COND_INITIALIZER;
-static pthread_cond_t itemAvail = PTHREAD_COND_INITIALIZER;
-
+static pthread_t pthreadReceiver;
 static List* receiverList = NULL;
+static pthread_cond_t buffAvail = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t display_mutex;
 
 void* receiveThread(void* msgArg) { // this arg has to be always passed even if unused
     while (1) {
-        // get the data (blocking)
-        // Will change sin (the address) to be the address of the client 
-        // Note: sin passes information in and otu of call!
+        // Listen for a receiveing message
         struct sockaddr_in sinRemote;
         unsigned int sin_len = sizeof(sinRemote);
         char message[MSG_MAX_LEN] = {};
-
-        if(List_count(receiverList) == 100) {
-            pthread_mutex_lock(&display_mutex);
-            {
-                // wait will gave up the mutex while process is waiting
-                pthread_cond_wait(&bufferAvail, &display_mutex);
-            }
-            pthread_mutex_unlock(&display_mutex);
-        }
         recvfrom(socketDescriptor, 
         message, MSG_MAX_LEN, 0, 
         (struct sockaddr *) &sinRemote, &sin_len);
 
+        // Remove next line char (might find a better way)
+        char msgWithoutNextLine[MSG_MAX_LEN];
+        for (int i = 0; i < MSG_MAX_LEN - 1; i++) {
+            msgWithoutNextLine[i] = message[i];
+        }
+
+        // If the list is full, then block the process 
+        // until consumer signals buffAvail and free a node
+        if (List_count(receiverList) == MSG_MAX_LEN) {
+            pthread_mutex_lock(&display_mutex);
+            {
+                pthread_cond_wait(&buffAvail,&display_mutex);
+            }
+            pthread_mutex_unlock(&display_mutex);
+        }
+
+        // if the list is not full, prepend a new item to the list
+        // and wake up the consumer
         pthread_mutex_lock(&display_mutex);
         {
-            List_prepend(receiverList,message);
-            printf("%s", message);
-            pthread_cond_signal(&itemAvail);
+            List_prepend(receiverList, msgWithoutNextLine);
+            Screen_itemAvailSignal();
         }
         pthread_mutex_unlock(&display_mutex);
-        printf("mutex unlocked receiver");
-           
     }
-    
     return NULL;
 }
 
-void Receiver_itemAvailWait() {
-
+void Receiver_buffAvailSignal() {
     pthread_mutex_lock(&display_mutex);
     { 
-        pthread_cond_wait(&itemAvail,&display_mutex);
+        pthread_cond_signal(&buffAvail);
     }
     pthread_mutex_unlock(&display_mutex);
 }
 
-void Receiver_bufferAvailSignal() {
-
-    pthread_mutex_lock(&display_mutex);
-    { 
-        pthread_cond_signal(&bufferAvail);
-    }
-    pthread_mutex_unlock(&display_mutex);
-}
-
-
-void Receiver_init(char* rxMessage, int port, int socket) {
-    printf("receiver starting\n");
+void Receiver_init(char* rxMessage, int port, int socket, pthread_mutex_t mutex) {
+    display_mutex = mutex;
     receiverList = ListManager_getreceiverList();
     localPort = port;
     socketDescriptor = socket;
     pthread_create(
-        &threadPID,                     // PID (passed by pointer)
+        &pthreadReceiver,                     // PID (passed by pointer)
         NULL,                           // Attributed (not used usually)
         receiveThread,                  // Function pointer
-        "This is a new arg\n"           // Arguments (if unused un Function, then pass NULL)
+        NULL           // Arguments (if unused un Function, then pass NULL)
     );
 }
 
 void Receiver_shutdown(void) {
-    // TO DO: cancel thread when user inputs ! char
-    // Cancel the thread to finish
-    pthread_cancel(threadPID);
-
-    // waits for thread to finish
-    pthread_join(threadPID, NULL);
-
+    pthread_cancel(pthreadReceiver);
+    pthread_join(pthreadReceiver, NULL);
     close(socketDescriptor);
 }
