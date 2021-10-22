@@ -5,23 +5,20 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
-#include "../list/list.h"
+
+#include "../sender/sender.h"
+#include "../keyboard/keyboard.h"
 #include "../list/listmanager.h"
 
-#define DYNAMIC_LEN 128
 #define MSG_MAX_LEN 1024
-
-static pthread_mutex_t dynamicMessageMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static int remotePort;
 static int socketDescriptor;
-static pthread_t threadPID;
-static char* s_rxMessage;
-static char* dynamicMessage;
-
+static pthread_t thread;
 static List* senderList;
 static char* message = NULL;
-
+pthread_mutex_t keyboardMutex;
+static pthread_cond_t itemAvail = PTHREAD_COND_INITIALIZER;
 
 
 void* sendThread(void* msgArg) {
@@ -32,21 +29,28 @@ void* sendThread(void* msgArg) {
     sinRemote.sin_addr.s_addr = htonl(INADDR_ANY);    // Host to Network long // local IP address
     sinRemote.sin_port = htons(remotePort);           // Host to Network short
 
-    // TODO: Read the message in the Input Module and add it to the list SenderList
-    // Sender module will then pull the message from the list and send it
     while(1) {
-        while(List_count(senderList) > 0) {
+        pthread_mutex_lock(&keyboardMutex);
+        { 
+            if (List_count(senderList) == 0)  {
+                pthread_cond_wait(&itemAvail,&keyboardMutex);
+            }
+            // if there is an item in the list, trim it
             message = List_trim(senderList);
-            // Send the message to remote socket
-            unsigned int sin_len = sizeof(sinRemote);
-            sendto(socketDescriptor, 
+            // Signal producer that a new buffer is available
+            Keyboard_buffAvailSignal();
+        }
+        pthread_mutex_unlock(&keyboardMutex);
+
+        // Send the message to remote socket
+        unsigned int sin_len = sizeof(sinRemote);
+        sendto(socketDescriptor, 
             message, strlen(message), 0, 
             (struct sockaddr *) &sinRemote, sin_len);
 
-            if(strcmp(message,"!\n") == 0) {
-                puts("PROGRAM SHUTDOWN");
-                exit(1);
-            }
+        if(strcmp(message,"!\n") == 0) {
+            puts("PROGRAM SHUTDOWN");
+            exit(1);
         }
         free(message);
         message = NULL;
@@ -54,25 +58,28 @@ void* sendThread(void* msgArg) {
     return NULL;
 }
 
-void Sender_init(char* rxMessage, int port, int socket) {
-    senderList = ListManager_getsenderList();
+void Sender_itemAvailSignal() {
+    pthread_mutex_lock(&keyboardMutex);
+    { 
+        pthread_cond_signal(&itemAvail);
+    }
+    pthread_mutex_unlock(&keyboardMutex);
+}
+
+void Sender_init(int port, int socket, pthread_mutex_t mutex) {
     remotePort = port;
     socketDescriptor = socket;
+    keyboardMutex = mutex;
+    senderList = ListManager_getsenderList();
     pthread_create(
-        &threadPID,                  // PID (passed by pointer)
-        NULL,                        // Attributed (not used usually)
-        sendThread,                 // Function pointer
-        NULL                        // Arguments (if unused un Function, then pass NULL)
+        &thread,
+        NULL,
+        sendThread,
+        NULL
     );
 }
 
 void Sender_shutdown(void) {
-    // TO DO: cancel thread when user inputs ! char
-
-    // Cancel the thread to finish
-    pthread_cancel(threadPID);
-
-
-    // waits for thread to finish
-    pthread_join(threadPID, NULL);
+    pthread_cancel(thread);
+    pthread_join(thread, NULL);
 }

@@ -10,37 +10,32 @@
 #define MSG_MAX_LEN 1024
 
 static pthread_t pthreadScreen;
-static List* receiverList = NULL;
-static char* message = NULL;
+static pthread_mutex_t displayMutex;
+static List* receiverList;
+static char* message;
 static pthread_cond_t itemAvail = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t display_mutex;
 
 void* screenThread(void* empty) {
     while(1) {
         // if the list is empty, there is nothing to consume, so block
-        if (List_count(receiverList) == 0)  {
-            pthread_mutex_lock(&display_mutex);
+        pthread_mutex_lock(&displayMutex);
             { 
-                pthread_cond_wait(&itemAvail,&display_mutex);
+                if (List_count(receiverList) == 0)  {
+                    pthread_cond_wait(&itemAvail,&displayMutex);
+                }
+                // if there is an item in the list, trim it
+                message = List_trim(receiverList);
+                // Signal producer that a new buffer is available
+                Receiver_buffAvailSignal();
             }
-            pthread_mutex_unlock(&display_mutex);
-        }
-
-        // if there is an item in the list, trim it
-        // and signal producer that a new buffer is available
-        pthread_mutex_lock(&display_mutex);
-        {
-            message = List_trim(receiverList);
-        }
-        pthread_mutex_unlock(&display_mutex);
-        Receiver_buffAvailSignal();
+        pthread_mutex_unlock(&displayMutex);
 
         // Consume
         if(strcmp(message,"!\n") == 0) {
             puts("PROGRAM SHUTDOWN");
             exit(1);
         }
-        fputs("Receiver: ", stdout);
+        fputs("Incoming message: ", stdout);
         fputs(message, stdout);
         message = NULL; 
     }
@@ -48,15 +43,15 @@ void* screenThread(void* empty) {
 }
 
 void Screen_itemAvailSignal() {
-    pthread_mutex_lock(&display_mutex);
+    pthread_mutex_lock(&displayMutex);
     { 
         pthread_cond_signal(&itemAvail);
     }
-    pthread_mutex_unlock(&display_mutex);
+    pthread_mutex_unlock(&displayMutex);
 }
 
 void Screen_init(pthread_mutex_t mutex) {
-    display_mutex = mutex;
+    displayMutex = mutex;
     receiverList = ListManager_getreceiverList();
     pthread_create(
         &pthreadScreen,

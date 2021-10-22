@@ -24,14 +24,15 @@ int main(int argc, char** args) {
 
     // Create socket
     int socketDescriptor = Socket_init(localPort);
-    // Display_mutex is shared between Receiver and Screen
-    static pthread_mutex_t display_mutex = PTHREAD_MUTEX_INITIALIZER;
+    // displayMutex is shared between Receiver and Screen
+    pthread_mutex_t displayMutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_t keyboardMutex = PTHREAD_MUTEX_INITIALIZER;
 
-    // Startup modules (we'll have 4 threads)
-    Keyboard_init(); // Gets input from user and puts it to the list
-    Sender_init(NULL, remotePort, socketDescriptor);  // Gets message from the list and sends it to the other process
-    Receiver_init(NULL, localPort, socketDescriptor, display_mutex); // Gets messsage from other process and puts it to the list 
-    Screen_init(display_mutex);
+    // Startup modules
+    Keyboard_init(keyboardMutex); // Gets input from user and puts it to the list
+    Sender_init(remotePort, socketDescriptor, keyboardMutex);  // Gets message from the list and sends it to the other process
+    Receiver_init(localPort, socketDescriptor, displayMutex); // Gets messsage from other process and puts it to the list 
+    Screen_init(displayMutex);
 
     // Shutdown modules
     Keyboard_shutdown();

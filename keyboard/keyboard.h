@@ -3,8 +3,8 @@
 
 #include "../list/list.h"
 
-void Keyboard_init();
-void Keyboard_shutdown();
-void Keyboard_clean();
+void Keyboard_init(pthread_mutex_t keyboardMutex);
+void Keyboard_buffAvailSignal(void);
+void Keyboard_shutdown(void);
 
 #endif
