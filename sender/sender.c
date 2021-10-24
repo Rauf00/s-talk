@@ -63,8 +63,6 @@ void* sendThread(void* msgArg) {
             free(servinfo);
             exit(1);
         }
-        free(message);
-        message = NULL;
     }
     return NULL;
 }

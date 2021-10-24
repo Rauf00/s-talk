@@ -10,18 +10,16 @@
 
 static pthread_t thread;
 static List* senderList;
-static char* message = NULL;
 static pthread_mutex_t keyboardMutex;
 static pthread_cond_t buffAvail = PTHREAD_COND_INITIALIZER;
 
 //SENDS MESSAGE TO SENDER
 //RECEIVES INPUT FROM TERMINAL
 void* keyboardThread(void* empty) {
+    char message[MSG_MAX_LEN] = {};
     while(1) {
         // Get message from the keyboard
-        message = malloc(MSG_MAX_LEN);
         fgets(message, MSG_MAX_LEN, stdin);
-
         pthread_mutex_lock(&keyboardMutex);
         {   
             // If the list is full, then block the process 
@@ -35,7 +33,7 @@ void* keyboardThread(void* empty) {
             Sender_itemAvailSignal();
         }
         pthread_mutex_unlock(&keyboardMutex);
-        
+
         if(strcmp(message,"!\n") == 0) {
             puts("PROGRAM SHUTDOWN");
             exit(1);
