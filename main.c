@@ -16,12 +16,10 @@ int main(int argc, char** args) {
     }
     int localPort = atoi(args[1]);
     char* remoteName = args[2];
-    int remotePort = atoi(args[3]);
-    printf("Local port: %d, Remote name: %s, Remote port: %d\n", localPort, remoteName, remotePort);
-
+    char* remotePort = args[3];
+    printf("Local port: %d, Remote name: %s, Remote port: %s\n", localPort, remoteName, remotePort);
     //create sender/receiver lists
     ListManager_create();
-
     // Create socket
     int socketDescriptor = Socket_init(localPort);
     // displayMutex is shared between Receiver and Screen
@@ -30,7 +28,7 @@ int main(int argc, char** args) {
 
     // Startup modules
     Keyboard_init(keyboardMutex); // Gets input from user and puts it to the list
-    Sender_init(remotePort, socketDescriptor, keyboardMutex);  // Gets message from the list and sends it to the other process
+    Sender_init(remoteName,remotePort, socketDescriptor, keyboardMutex);  // Gets message from the list and sends it to the other process
     Receiver_init(localPort, socketDescriptor, displayMutex); // Gets messsage from other process and puts it to the list 
     Screen_init(displayMutex);
 

@@ -23,6 +23,7 @@ void* receiveThread(void* msgArg) {
     while (1) {
         // Listen for a receiveing message
         struct sockaddr_in sinRemote;
+        memset(&sinRemote, 0, sizeof(sinRemote));
         unsigned int sin_len = sizeof(sinRemote);
         char message[MSG_MAX_LEN] = {};
         recvfrom(socketDescriptor, 
