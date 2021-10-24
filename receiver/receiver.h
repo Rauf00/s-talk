@@ -3,6 +3,7 @@
 
 void Receiver_init(int port, int socket, pthread_mutex_t displayMutex);
 void Receiver_buffAvailSignal(void);
-void Receiver_shutdown(void);
+void Receiver_join(void);
+void Receiver_cancel(void);
 
 #endif

@@ -9,6 +9,7 @@
 #include "receiver.h"
 #include "../screen/screen.h"
 #include "../list/listmanager.h"
+#include "../cancelThreads/cancelThreads.h"
 
 #define MSG_MAX_LEN 1024
 
@@ -34,6 +35,12 @@ void* receiveThread(void* msgArg) {
         char msgWithoutNextLine[MSG_MAX_LEN];
         for (int i = 0; i < MSG_MAX_LEN - 1; i++) {
             msgWithoutNextLine[i] = message[i];
+        }
+
+        // Finish the program if receiving message is "!"
+        if(strcmp(msgWithoutNextLine,"!\n") == 0) {
+            List_free(receiverList, free); // seems that it doesnt free the list propely. Confirm with TA
+            CancelThreads_cancelAllThreadsInReceiver();
         }
         
         pthread_mutex_lock(&displayMutex);
@@ -74,8 +81,12 @@ void Receiver_init(int port, int socket, pthread_mutex_t mutex) {
     );
 }
 
-void Receiver_shutdown(void) {
-    pthread_cancel(pthreadReceiver);
+void Receiver_join(void) {
+    // printf("receveir join");
     pthread_join(pthreadReceiver, NULL);
-    close(socketDescriptor);
+}
+
+void Receiver_cancel(void) {
+    // printf("receiver cancel\n");
+    pthread_cancel(pthreadReceiver);
 }

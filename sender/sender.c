@@ -10,7 +10,10 @@
 
 #include "../sender/sender.h"
 #include "../keyboard/keyboard.h"
+#include "../receiver/receiver.h"
+#include "../screen/screen.h"
 #include "../list/listmanager.h"
+#include "../cancelThreads/cancelThreads.h"
 
 #define MSG_MAX_LEN 1024
 
@@ -59,9 +62,9 @@ void* sendThread(void* msgArg) {
             message, strlen(message), 0, servinfo->ai_addr, servinfo->ai_addrlen);
 
         if(strcmp(message,"!\n") == 0) {
-            puts("PROGRAM SHUTDOWN");
             free(servinfo);
-            exit(1);
+            List_free(senderList, free); // seems that it doesnt free the list propely. Confirm with TA
+            CancelThreads_cancelAllThreads();
         }
     }
     return NULL;
@@ -89,7 +92,12 @@ void Sender_init(char* name,char* port, int socket, pthread_mutex_t mutex) {
     );
 }
 
-void Sender_shutdown(void) {
-    pthread_cancel(thread);
+void Sender_join(void) {
+    // printf("sender join");
     pthread_join(thread, NULL);
+}
+
+void Sender_cancel(void) {
+    // printf("sender cancel\n");
+    pthread_cancel(thread);
 }

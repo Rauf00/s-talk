@@ -31,10 +31,6 @@ void* screenThread(void* empty) {
         pthread_mutex_unlock(&displayMutex);
 
         // Consume
-        if(strcmp(message,"!\n") == 0) {
-            puts("PROGRAM SHUTDOWN");
-            exit(1);
-        }
         fputs("Incoming message: ", stdout);
         fputs(message, stdout);
         message = NULL; 
@@ -61,12 +57,12 @@ void Screen_init(pthread_mutex_t mutex) {
     );
 }
 
-void Screen_shutdown(void) {
-    //TODO: cancel threads
-    pthread_cancel(pthreadScreen);
-    if(message != NULL) {
-        free(message);
-        message = NULL;
-    }
+void Screen_join(void) {
+    // printf("screen join");
     pthread_join(pthreadScreen,NULL);
+}
+
+void Screen_cancel(void) {
+    // printf("screen cancel\n");
+    pthread_cancel(pthreadScreen);
 }

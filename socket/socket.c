@@ -9,13 +9,13 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-int Socket_init(int localPort) { // this arg has to be always passed even if unused
+int Socket_init(int localPort) {
     // Address
     struct sockaddr_in sin;
     memset(&sin, 0, sizeof(sin));
-    sin.sin_family = AF_INET;                   // connection may be from network
-    sin.sin_addr.s_addr = htonl(INADDR_ANY);    // Host to Network long // local IP address
-    sin.sin_port = htons(localPort);                 // Host to Network short
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = htonl(INADDR_ANY);
+    sin.sin_port = htons(localPort);
 
     // Create the socket for UDP
     int socketDescriptor = socket(PF_INET, SOCK_DGRAM, 0);

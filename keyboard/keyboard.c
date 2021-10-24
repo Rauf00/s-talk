@@ -33,11 +33,6 @@ void* keyboardThread(void* empty) {
             Sender_itemAvailSignal();
         }
         pthread_mutex_unlock(&keyboardMutex);
-
-        if(strcmp(message,"!\n") == 0) {
-            puts("PROGRAM SHUTDOWN");
-            exit(1);
-        }
     }
     return NULL;
 }
@@ -61,12 +56,12 @@ void Keyboard_init(pthread_mutex_t mutex) {
     );
 }
 
-void Keyboard_shutdown(void) {
-    /*
-    pthread_cancel(thread);
-    if(message != NULL) {
-        free(message);
-    }
-    */
+void Keyboard_join(void) {
+    // printf("keyboard join");
     pthread_join(thread,NULL);
+}
+
+void Keyboard_cancel(void) {
+    // printf("keyboard cancel\n");
+    pthread_cancel(thread);
 }

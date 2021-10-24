@@ -5,6 +5,7 @@
 
 void Keyboard_init(pthread_mutex_t keyboardMutex);
 void Keyboard_buffAvailSignal(void);
-void Keyboard_shutdown(void);
+void Keyboard_join(void);
+void Keyboard_cancel(void);
 
 #endif

@@ -3,6 +3,7 @@
 
 void Screen_init(pthread_mutex_t displayMutex);
 void Screen_itemAvailSignal(void);
-void Screen_shutdown(void);
+void Screen_join(void);
+void Screen_cancel(void);
 
 #endif
