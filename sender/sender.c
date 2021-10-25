@@ -39,7 +39,7 @@ void* sendThread(void* msgArg) {
     hints.ai_socktype = SOCK_DGRAM;    // Host to Network long // local IP address
     hints.ai_flags = AI_PASSIVE;           // Host to Network short
 
-    if(status = getaddrinfo(NULL, remotePort, &hints, &servinfo) != 0) {
+    if(status = getaddrinfo(ipAddress, remotePort, &hints, &servinfo) != 0) {
         fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
         exit(1);
     }
