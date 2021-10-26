@@ -8,7 +8,7 @@
 #include "../list/listmanager.h"
 #include "../cancelThreads/cancelThreads.h"
 
-#define MSG_MAX_LEN 1024
+#define MSG_MAX_LEN 512
 
 static pthread_t pthreadScreen;
 static pthread_mutex_t displayMutex;
@@ -18,15 +18,15 @@ static pthread_cond_t itemAvail = PTHREAD_COND_INITIALIZER;
 
 void* screenThread(void* empty) {
     while(1) {
-        // if the list is empty, there is nothing to consume, so block
         pthread_mutex_lock(&displayMutex);
-            { 
+            {   
+                // if the list is empty, there is nothing to consume, so block
                 if (List_count(receiverList) == 0)  {
                     pthread_cond_wait(&itemAvail,&displayMutex);
                 }
                 // if there is an item in the list, trim it
                 message = List_trim(receiverList);
-                // Signal producer that a new buffer is available
+                // Signal producer (Receiver thread) that a new buffer is available
                 Receiver_buffAvailSignal();
             }
         pthread_mutex_unlock(&displayMutex);

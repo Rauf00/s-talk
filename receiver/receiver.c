@@ -11,7 +11,7 @@
 #include "../list/listmanager.h"
 #include "../cancelThreads/cancelThreads.h"
 
-#define MSG_MAX_LEN 1024
+#define MSG_MAX_LEN 512
 
 static int localPort;
 static int socketDescriptor;
@@ -35,12 +35,12 @@ void* receiveThread(void* msgArg) {
         pthread_mutex_lock(&displayMutex);
         {   
             // If the list is full, then block the process 
-            // until consumer signals buffAvail and free a node
+            // until consumer (Screen thread) signals buffAvail and free a node
             if (List_count(receiverList) == MSG_MAX_LEN) {
                 pthread_cond_wait(&buffAvail,&displayMutex);
             }
             // if the list is not full, prepend a new item to the list
-            // and wake up the consumer
+            // and wake the consumer (Screen thread) up
             List_prepend(receiverList, message);
             Screen_itemAvailSignal();
         }
@@ -81,6 +81,6 @@ void Receiver_join(void) {
 
 void Receiver_cancel(void) {
     free(message);
-    List_free(receiverList, NULL);
+    List_free(receiverList, NULL); // ask TA
     pthread_cancel(pthreadReceiver);
 }

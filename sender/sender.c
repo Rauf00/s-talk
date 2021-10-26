@@ -15,7 +15,7 @@
 #include "../list/listmanager.h"
 #include "../cancelThreads/cancelThreads.h"
 
-#define MSG_MAX_LEN 1024
+#define MSG_MAX_LEN 512
 
 static char* remotePort;
 static int socketDescriptor;
@@ -35,9 +35,9 @@ void* sendThread(void* msgArg) {
     // Construct remote socket address
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;                   // connection may be from network
-    hints.ai_socktype = SOCK_DGRAM;    // Host to Network long // local IP address
-    hints.ai_flags = AI_PASSIVE;           // Host to Network short
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_PASSIVE;
 
     status = getaddrinfo(ipAddress, remotePort, &hints, &servinfo);
     if(status != 0) {
@@ -53,12 +53,12 @@ void* sendThread(void* msgArg) {
             }
             // if there is an item in the list, trim it
             message = List_trim(senderList);
-            // Signal producer that a new buffer is available
+            // Signal producer (Keyboard thread) that a new buffer is available
             Keyboard_buffAvailSignal();
         }
         pthread_mutex_unlock(&keyboardMutex);
 
-        // Send the message to remote socket
+        // Send the message to remote socket (consume)
         sendto(socketDescriptor, 
             message, strlen(message), 0, servinfo->ai_addr, servinfo->ai_addrlen);
         
