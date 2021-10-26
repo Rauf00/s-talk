@@ -44,6 +44,9 @@ void* sendThread(void* msgArg) {
         fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
         exit(1);
     }
+    if(socketDescriptor == -1) {
+        puts("Sender: Failed to connect to socket");
+    }
 
     while(1) {
         pthread_mutex_lock(&keyboardMutex);
@@ -58,9 +61,15 @@ void* sendThread(void* msgArg) {
         }
         pthread_mutex_unlock(&keyboardMutex);
 
+        if(message == NULL) {
+            puts("Sender: Message is Null");
+        }
+
         // Send the message to remote socket
-        sendto(socketDescriptor, 
-            message, strlen(message), 0, servinfo->ai_addr, servinfo->ai_addrlen);
+        if(sendto(socketDescriptor, message, strlen(message), 0, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
+            puts("Sender: Failed to send");
+            return NULL;
+        }
         
         if(strcmp(message,"!\n") == 0) {
             free(servinfo);

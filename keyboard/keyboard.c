@@ -21,6 +21,9 @@ void* keyboardThread(void* empty) {
         // Get message from the keyboard
         message = (char*) malloc(MSG_MAX_LEN);
         fgets(message, MSG_MAX_LEN, stdin);
+        if(message == NULL) {
+            puts("Keyboard: Message not malloc");
+        }
         pthread_mutex_lock(&keyboardMutex);
         {   
             // If the list is full, then block the process 
@@ -30,7 +33,9 @@ void* keyboardThread(void* empty) {
             }
             // if the list is not full, prepend a new item to the list
             // and wake up the consumer
-            List_prepend(senderList, message);
+            if(List_prepend(senderList, message) == -1) {
+                puts("Keyboard: Failed to prepend message");
+            }
             Sender_itemAvailSignal();
         }
         pthread_mutex_unlock(&keyboardMutex);

@@ -30,10 +30,16 @@ void* screenThread(void* empty) {
                 Receiver_buffAvailSignal();
             }
         pthread_mutex_unlock(&displayMutex);
+        
+        if(message == NULL) {
+            puts("Screen: message is NULL");
+        }
 
         // Consume
-        fputs("Incoming message: ", stdout);
-        fputs(message, stdout);
+        if(strlen(message) > 1) {
+            fputs("Incoming message: ", stdout);
+            fputs(message, stdout);
+        }
 
         // Finish the program if receiving message is "!"
         if(strcmp(message,"!\n") == 0) {

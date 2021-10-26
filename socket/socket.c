@@ -18,10 +18,17 @@ int Socket_init(int localPort) {
     sin.sin_port = htons(localPort);
 
     // Create the socket for UDP
-    int socketDescriptor = socket(PF_INET, SOCK_DGRAM, 0);
+    int socketDescriptor;
+    if((socketDescriptor = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
+        puts("Receiver: Failed to connect to socket");
+        return 1;
+    }
 
     // Bind the socket to the port (PORT) that we specify
-    bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin));
+    if(bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin)) == -1) {
+        puts("Receiver: Failed to bind");
+        return 1;
+    }
     
     return socketDescriptor;
 }

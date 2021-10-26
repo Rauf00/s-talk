@@ -28,9 +28,11 @@ void* receiveThread(void* msgArg) {
         memset(&sinRemote, 0, sizeof(sinRemote));
         unsigned int sin_len = sizeof(sinRemote);
         message = (char*) malloc(MSG_MAX_LEN);
-        recvfrom(socketDescriptor, 
-            message, MSG_MAX_LEN, 0, 
-            (struct sockaddr *) &sinRemote, &sin_len);
+        
+        if(recvfrom(socketDescriptor,message, MSG_MAX_LEN, 0,  (struct sockaddr *) &sinRemote, &sin_len) == -1) {
+            puts("Receiver: Failed to recvfrom");
+            return NULL;
+        }
         
         pthread_mutex_lock(&displayMutex);
         {   
@@ -45,6 +47,10 @@ void* receiveThread(void* msgArg) {
             Screen_itemAvailSignal();
         }
         pthread_mutex_unlock(&displayMutex);
+
+        if(message == NULL) {
+            puts("Receiver: Message is NULL");
+        }
         
         // Finish the program if receiving message is "!"
         if(strcmp(message,"!\n") == 0) {
