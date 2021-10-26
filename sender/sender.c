@@ -19,7 +19,7 @@
 
 static char* remotePort;
 static int socketDescriptor;
-static pthread_t thread;
+static pthread_t pthreadSender;
 static List* senderList;
 static char* message = NULL;
 pthread_mutex_t keyboardMutex;
@@ -39,7 +39,8 @@ void* sendThread(void* msgArg) {
     hints.ai_socktype = SOCK_DGRAM;    // Host to Network long // local IP address
     hints.ai_flags = AI_PASSIVE;           // Host to Network short
 
-    if(status = getaddrinfo(ipAddress, remotePort, &hints, &servinfo) != 0) {
+    status = getaddrinfo(ipAddress, remotePort, &hints, &servinfo);
+    if(status != 0) {
         fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
         exit(1);
     }
@@ -60,12 +61,16 @@ void* sendThread(void* msgArg) {
         // Send the message to remote socket
         sendto(socketDescriptor, 
             message, strlen(message), 0, servinfo->ai_addr, servinfo->ai_addrlen);
-
+        
         if(strcmp(message,"!\n") == 0) {
             free(servinfo);
+            free(message);
             List_free(senderList, free); // seems that it doesnt free the list propely. Confirm with TA
-            CancelThreads_cancelAllThreads();
+            CancelThreads_receiverAndSceenCancel();
+            break;
         }
+
+        free(message);
     }
     return NULL;
 }
@@ -85,7 +90,7 @@ void Sender_init(char* name,char* port, int socket, pthread_mutex_t mutex) {
     keyboardMutex = mutex;
     senderList = ListManager_getsenderList();
     pthread_create(
-        &thread,
+        &pthreadSender,
         NULL,
         sendThread,
         NULL
@@ -93,11 +98,10 @@ void Sender_init(char* name,char* port, int socket, pthread_mutex_t mutex) {
 }
 
 void Sender_join(void) {
-    // printf("sender join");
-    pthread_join(thread, NULL);
+    pthread_join(pthreadSender, NULL);
 }
 
 void Sender_cancel(void) {
-    // printf("sender cancel\n");
-    pthread_cancel(thread);
+    free(servinfo);
+    pthread_cancel(pthreadSender);
 }

@@ -6,6 +6,7 @@
 #include "screen.h"
 #include "../receiver/receiver.h"
 #include "../list/listmanager.h"
+#include "../cancelThreads/cancelThreads.h"
 
 #define MSG_MAX_LEN 1024
 
@@ -33,7 +34,15 @@ void* screenThread(void* empty) {
         // Consume
         fputs("Incoming message: ", stdout);
         fputs(message, stdout);
-        message = NULL; 
+
+        // Finish the program if receiving message is "!"
+        if(strcmp(message,"!\n") == 0) {
+            free(message);
+            List_free(receiverList, NULL); // seems that it doesnt free the list propely. Confirm with TA
+            CancelThreads_keyboardAndSenderCancel();
+            break;
+        }
+        free(message);
     }
     return NULL;
 }
@@ -58,11 +67,9 @@ void Screen_init(pthread_mutex_t mutex) {
 }
 
 void Screen_join(void) {
-    // printf("screen join");
-    pthread_join(pthreadScreen,NULL);
+    pthread_join(pthreadScreen, NULL);
 }
 
 void Screen_cancel(void) {
-    // printf("screen cancel\n");
     pthread_cancel(pthreadScreen);
 }

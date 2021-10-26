@@ -13,16 +13,12 @@
 #include "../keyboard/keyboard.h"
 #include "../screen/screen.h"
 
-void CancelThreads_cancelAllThreads() {
+void CancelThreads_receiverAndSceenCancel() {
     Receiver_cancel();
     Screen_cancel();
-    Keyboard_cancel();
-    Sender_cancel();
 }
 
-void CancelThreads_cancelAllThreadsInReceiver() {
-    Screen_cancel();
+void CancelThreads_keyboardAndSenderCancel() {
     Keyboard_cancel();
     Sender_cancel();
-    Receiver_cancel();
 }

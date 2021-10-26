@@ -30,19 +30,17 @@ int main(int argc, char** args) {
     pthread_mutex_t keyboardMutex = PTHREAD_MUTEX_INITIALIZER;
 
     // Startup module
-    bool isProrgramEnd = 0;
-    bool* isProgramEndPt = &isProrgramEnd;
     Keyboard_init(keyboardMutex); // Gets input from user and puts it to the list
     Sender_init(remoteName,remotePort, socketDescriptor, keyboardMutex);  // Gets message from the list and sends it to the other process
     Receiver_init(localPort, socketDescriptor, displayMutex); // Gets messsage from other process and puts it to the list 
     Screen_init(displayMutex);
 
     // join modules
+    Screen_join();
     Keyboard_join();
     Sender_join();
     Receiver_join();
-    Screen_join();
-
+    
     printf("**** Program end ****\n");
     return 0;
 }

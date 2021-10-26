@@ -19,6 +19,7 @@ static pthread_t pthreadReceiver;
 static pthread_mutex_t displayMutex;
 static List* receiverList;
 static pthread_cond_t buffAvail = PTHREAD_COND_INITIALIZER;
+static char* message;
 
 void* receiveThread(void* msgArg) {
     while (1) {
@@ -26,22 +27,10 @@ void* receiveThread(void* msgArg) {
         struct sockaddr_in sinRemote;
         memset(&sinRemote, 0, sizeof(sinRemote));
         unsigned int sin_len = sizeof(sinRemote);
-        char message[MSG_MAX_LEN] = {};
+        message = (char*) malloc(MSG_MAX_LEN);
         recvfrom(socketDescriptor, 
             message, MSG_MAX_LEN, 0, 
             (struct sockaddr *) &sinRemote, &sin_len);
-
-        // Remove next line char (might find a better way)
-        char msgWithoutNextLine[MSG_MAX_LEN];
-        for (int i = 0; i < MSG_MAX_LEN - 1; i++) {
-            msgWithoutNextLine[i] = message[i];
-        }
-
-        // Finish the program if receiving message is "!"
-        if(strcmp(msgWithoutNextLine,"!\n") == 0) {
-            List_free(receiverList, free); // seems that it doesnt free the list propely. Confirm with TA
-            CancelThreads_cancelAllThreadsInReceiver();
-        }
         
         pthread_mutex_lock(&displayMutex);
         {   
@@ -52,10 +41,15 @@ void* receiveThread(void* msgArg) {
             }
             // if the list is not full, prepend a new item to the list
             // and wake up the consumer
-            List_prepend(receiverList, msgWithoutNextLine);
+            List_prepend(receiverList, message);
             Screen_itemAvailSignal();
         }
         pthread_mutex_unlock(&displayMutex);
+        
+        // Finish the program if receiving message is "!"
+        if(strcmp(message,"!\n") == 0) {
+            break;
+        }
     }
     return NULL;
 }
@@ -69,10 +63,10 @@ void Receiver_buffAvailSignal() {
 }
 
 void Receiver_init(int port, int socket, pthread_mutex_t mutex) {
-    receiverList = ListManager_getreceiverList();
     localPort = port;
     socketDescriptor = socket;
     displayMutex = mutex;
+    receiverList = ListManager_getreceiverList();
     pthread_create(
         &pthreadReceiver,
         NULL,
@@ -82,11 +76,11 @@ void Receiver_init(int port, int socket, pthread_mutex_t mutex) {
 }
 
 void Receiver_join(void) {
-    // printf("receveir join");
     pthread_join(pthreadReceiver, NULL);
 }
 
 void Receiver_cancel(void) {
-    // printf("receiver cancel\n");
+    free(message);
+    List_free(receiverList, NULL);
     pthread_cancel(pthreadReceiver);
 }

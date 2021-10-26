@@ -8,17 +8,18 @@
 
 #define MSG_MAX_LEN 1024
 
-static pthread_t thread;
+static pthread_t pthreadKeyboard;
 static List* senderList;
 static pthread_mutex_t keyboardMutex;
 static pthread_cond_t buffAvail = PTHREAD_COND_INITIALIZER;
+static char* message;
 
 //SENDS MESSAGE TO SENDER
 //RECEIVES INPUT FROM TERMINAL
 void* keyboardThread(void* empty) {
-    char message[MSG_MAX_LEN] = {};
     while(1) {
         // Get message from the keyboard
+        message = (char*) malloc(MSG_MAX_LEN);
         fgets(message, MSG_MAX_LEN, stdin);
         pthread_mutex_lock(&keyboardMutex);
         {   
@@ -33,6 +34,10 @@ void* keyboardThread(void* empty) {
             Sender_itemAvailSignal();
         }
         pthread_mutex_unlock(&keyboardMutex);
+
+        if(strcmp(message,"!\n") == 0) {
+            break;
+        }
     }
     return NULL;
 }
@@ -49,7 +54,7 @@ void Keyboard_init(pthread_mutex_t mutex) {
     keyboardMutex = mutex;
     senderList = ListManager_getsenderList();
     pthread_create(
-        &thread,
+        &pthreadKeyboard,
         NULL,
         keyboardThread,
         NULL
@@ -57,11 +62,11 @@ void Keyboard_init(pthread_mutex_t mutex) {
 }
 
 void Keyboard_join(void) {
-    // printf("keyboard join");
-    pthread_join(thread,NULL);
+    pthread_join(pthreadKeyboard,NULL);
 }
 
 void Keyboard_cancel(void) {
-    // printf("keyboard cancel\n");
-    pthread_cancel(thread);
+    free(message);
+    List_free(senderList, NULL);
+    pthread_cancel(pthreadKeyboard);
 }
