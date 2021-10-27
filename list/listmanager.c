@@ -27,3 +27,7 @@ List* ListManager_getsenderList() {
 List* ListManager_getreceiverList() {
     return receiverList;
 }
+
+void ListManager_freeNode(void* node) {
+    free(node);
+}

@@ -3,15 +3,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
 
 #include "../sender/sender.h"
 #include "../keyboard/keyboard.h"
-#include "../receiver/receiver.h"
-#include "../screen/screen.h"
 #include "../list/listmanager.h"
 #include "../cancelThreads/cancelThreads.h"
 
@@ -19,18 +14,19 @@
 
 static char* remotePort;
 static int socketDescriptor;
+static char* ipAddress;
+int status;
+static struct addrinfo *servinfo;
 static pthread_t pthreadSender;
 static List* senderList;
 static char* message = NULL;
 pthread_mutex_t keyboardMutex;
 static pthread_cond_t itemAvail = PTHREAD_COND_INITIALIZER;
 
-static char* ipAddress;
-
-int status;
-
-static struct addrinfo *servinfo;
-
+/*
+    Gets the messages from the senderList
+    and sends the messages to the remote receiver
+*/
 void* sendThread(void* msgArg) {
     // Construct remote socket address
     struct addrinfo hints;
@@ -38,7 +34,6 @@ void* sendThread(void* msgArg) {
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE;
-
     status = getaddrinfo(ipAddress, remotePort, &hints, &servinfo);
     if(status != 0) {
         fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
@@ -49,12 +44,13 @@ void* sendThread(void* msgArg) {
     }
 
     while(1) {
+        // Access to senderList (critical section), so lock the mutex
         pthread_mutex_lock(&keyboardMutex);
         { 
             if (List_count(senderList) == 0)  {
                 pthread_cond_wait(&itemAvail,&keyboardMutex);
             }
-            // if there is an item in the list, trim it
+            // If there is an item in the senderList, trim it
             message = List_trim(senderList);
             // Signal producer (Keyboard thread) that a new buffer is available
             Keyboard_buffAvailSignal();
@@ -71,10 +67,14 @@ void* sendThread(void* msgArg) {
             return NULL;
         }
         
+        // Finish the program the trimmed message is "!" and clean up the memory
         if(strcmp(message,"!\n") == 0) {
             free(servinfo);
             free(message);
-            List_free(senderList, free); // seems that it doesnt free the list propely. Confirm with TA
+            List_free(senderList, ListManager_freeNode);
+            pthread_mutex_destroy(&keyboardMutex);
+            pthread_cond_destroy(&itemAvail);
+            close(socketDescriptor);
             CancelThreads_receiverAndSceenCancel();
             break;
         }
@@ -111,6 +111,11 @@ void Sender_join(void) {
 }
 
 void Sender_cancel(void) {
+    // Clean up the memory
     free(servinfo);
+    List_free(senderList, ListManager_freeNode);
+    close(socketDescriptor);
     pthread_cancel(pthreadSender);
+    pthread_mutex_destroy(&keyboardMutex);
+    pthread_cond_destroy(&itemAvail);
 }

@@ -16,15 +16,20 @@ static List* receiverList;
 static char* message;
 static pthread_cond_t itemAvail = PTHREAD_COND_INITIALIZER;
 
+/*
+    Gets the messages from the receiverList
+    and diplays the messages in the terminal
+*/
 void* screenThread(void* empty) {
     while(1) {
+        // Access to recevierList (critical section), so lock the mutex
         pthread_mutex_lock(&displayMutex);
             {   
-                // if the list is empty, there is nothing to consume, so block
+                // If the list is empty, there is nothing to consume, so block the process
                 if (List_count(receiverList) == 0)  {
                     pthread_cond_wait(&itemAvail,&displayMutex);
                 }
-                // if there is an item in the list, trim it
+                // iI there is an item in the list, trim it
                 message = List_trim(receiverList);
                 // Signal producer (Receiver thread) that a new buffer is available
                 Receiver_buffAvailSignal();
@@ -35,7 +40,7 @@ void* screenThread(void* empty) {
             puts("Screen: message is NULL");
         }
 
-        // Consume
+        // Display the message (consume)
         if(strlen(message) > 1) {
             fputs("Incoming message: ", stdout);
             fputs(message, stdout);
@@ -43,8 +48,11 @@ void* screenThread(void* empty) {
 
         // Finish the program if receiving message is "!"
         if(strcmp(message,"!\n") == 0) {
+            // Clean up the memory
             free(message);
-            List_free(receiverList, NULL); // seems that it doesnt free the list propely. Confirm with TA
+            List_free(receiverList, ListManager_freeNode); // seems that it doesnt free the list propely. Confirm with TA
+            pthread_mutex_destroy(&displayMutex);
+            pthread_cond_destroy(&itemAvail);
             CancelThreads_keyboardAndSenderCancel();
             break;
         }
@@ -78,4 +86,6 @@ void Screen_join(void) {
 
 void Screen_cancel(void) {
     pthread_cancel(pthreadScreen);
+    // Clean up the memory
+    pthread_cond_destroy(&itemAvail);
 }

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "keyboard.h"
 #include "../sender/sender.h"
 #include "../list/listmanager.h"
@@ -11,9 +12,13 @@
 static pthread_t pthreadKeyboard;
 static List* senderList;
 static pthread_mutex_t keyboardMutex;
-static pthread_cond_t buffAvail = PTHREAD_COND_INITIALIZER;
 static char* message;
+static pthread_cond_t buffAvail = PTHREAD_COND_INITIALIZER;
 
+/* 
+    Listens for the user input from the terminal
+    and puts a message into senderList
+*/
 void* keyboardThread(void* empty) {
     while(1) {
         // Get message from the keyboard
@@ -22,15 +27,16 @@ void* keyboardThread(void* empty) {
         if(message == NULL) {
             puts("Keyboard: Message not malloc");
         }
+        // Access to senderList (critical section), so lock the mutex
         pthread_mutex_lock(&keyboardMutex);
         {   
             // If the list is full, then block the process 
-            // until consumer (Sender thread) signals buffAvail and free a node
+            // until consumer (Sender thread) signals buffAvail and frees a node
             if (List_count(senderList) == MSG_MAX_LEN) {
                 pthread_cond_wait(&buffAvail,&keyboardMutex);
             }
-            // if the list is not full, prepend a new item to the list
-            // and wake up the consumer
+            // If the list is not full, prepend a new item to the list
+            // and wake up the consumer (Sender thread)
             if(List_prepend(senderList, message) == -1) {
                 puts("Keyboard: Failed to prepend message");
             }
@@ -38,7 +44,9 @@ void* keyboardThread(void* empty) {
         }
         pthread_mutex_unlock(&keyboardMutex);
 
+        // Finish the program if the user inoput is "!" and clean up the memory
         if(strcmp(message,"!\n") == 0) {
+            pthread_cond_destroy(&buffAvail);
             break;
         }
     }
@@ -70,6 +78,6 @@ void Keyboard_join(void) {
 
 void Keyboard_cancel(void) {
     free(message);
-    List_free(senderList, NULL);
     pthread_cancel(pthreadKeyboard);
+    pthread_cond_destroy(&buffAvail);
 }
