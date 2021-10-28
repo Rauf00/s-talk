@@ -23,10 +23,10 @@ void* keyboardThread(void* empty) {
     while(1) {
         // Get message from the keyboard
         message = (char*) malloc(MSG_MAX_LEN);
-        fgets(message, MSG_MAX_LEN, stdin);
         if(message == NULL) {
             puts("Keyboard: Message not malloc");
         }
+        fgets(message, MSG_MAX_LEN, stdin);
         // Access to senderList (critical section), so lock the mutex
         pthread_mutex_lock(&keyboardMutex);
         {   

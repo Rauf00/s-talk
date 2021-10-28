@@ -51,7 +51,7 @@ void* sendThread(void* msgArg) {
                 pthread_cond_wait(&itemAvail,&keyboardMutex);
             }
             // If there is an item in the senderList, trim it
-            message = List_trim(senderList);
+            message = (char*) List_trim(senderList);
             // Signal producer (Keyboard thread) that a new buffer is available
             Keyboard_buffAvailSignal();
         }
@@ -78,7 +78,7 @@ void* sendThread(void* msgArg) {
             CancelThreads_receiverAndSceenCancel();
             break;
         }
-
+        memset(message, 0, MSG_MAX_LEN);
         free(message);
     }
     return NULL;

@@ -30,7 +30,7 @@ void* screenThread(void* empty) {
                     pthread_cond_wait(&itemAvail,&displayMutex);
                 }
                 // iI there is an item in the list, trim it
-                message = List_trim(receiverList);
+                message = (char*) List_trim(receiverList);
                 // Signal producer (Receiver thread) that a new buffer is available
                 Receiver_buffAvailSignal();
             }
@@ -50,12 +50,13 @@ void* screenThread(void* empty) {
         if(strcmp(message,"!\n") == 0) {
             // Clean up the memory
             free(message);
-            List_free(receiverList, ListManager_freeNode); // seems that it doesnt free the list propely. Confirm with TA
+            List_free(receiverList, ListManager_freeNode);
             pthread_mutex_destroy(&displayMutex);
             pthread_cond_destroy(&itemAvail);
             CancelThreads_keyboardAndSenderCancel();
             break;
         }
+        memset(message, 0, MSG_MAX_LEN);
         free(message);
     }
     return NULL;

@@ -17,7 +17,7 @@ static int socketDescriptor;
 static pthread_t pthreadReceiver;
 static pthread_mutex_t displayMutex;
 static List* receiverList;
-static char* message;
+static char* message = NULL;
 static pthread_cond_t buffAvail = PTHREAD_COND_INITIALIZER;
 
 /* 
